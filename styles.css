@@ -166,3 +166,33 @@ h1 {
   background-color: #13b8cc;
 }
 
+/* Existing styles */
+
+.difficulty-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+}
+
+.difficulty-list li {
+  margin: 10px;
+}
+
+.difficulty-btn {
+  background-color: transparent;
+  border: 2px solid #c0c0c0;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.5rem 1rem;
+  font-size: 1.5rem;
+}
+
+.difficulty-btn:hover {
+  border: 2px solid #16d9e3;
+  color: #16d9e3;
+}
+
+

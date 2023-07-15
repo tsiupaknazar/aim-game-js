@@ -1,57 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
-    <title>Aim Training Game</title>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Aim Training Game</title>
+</head>
 
-  <body>
-    <div class="screen">
-      <h1>Aim Training</h1>
-      <div
-        style="
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 250px;
-        "
-      >
-        <a href="#" class="start" id="start">Start Game</a>
-        <span class="records" id="records">Records</span>
-      </div>
+<body>
+  <div class="screen">
+    <h1>Aim Training</h1>
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 250px;
+      "
+    >
+      <a href="#" class="start" id="start">Start Game</a>
+      <span class="records" id="records">Records</span>
     </div>
-    <div class="screen">
-      <h1>Choose time</h1>
-      <ul class="time-list" id="time-list">
-        <li>
-          <button class="time-btn" data-time="10">10 sec</button>
-        </li>
-        <li>
-          <button class="time-btn" data-time="20">20 sec</button>
-        </li>
-        <li>
-          <button class="time-btn" data-time="30">30 sec</button>
-        </li>
-        <li>
-          <button class="time-btn" data-time="60">60 sec</button>
-        </li>
-      </ul>
-    </div>
+  </div>
+  <div class="screen">
+    <h1>Choose time</h1>
+    <ul class="time-list" id="time-list">
+      <li>
+        <button class="time-btn" data-time="10">10 sec</button>
+      </li>
+      <li>
+        <button class="time-btn" data-time="20">20 sec</button>
+      </li>
+      <li>
+        <button class="time-btn" data-time="30">30 sec</button>
+      </li>
+      <li>
+        <button class="time-btn" data-time="60">60 sec</button>
+      </li>
+    </ul>
+  </div>
+  <div class="screen">
+    <h1>Choose difficulty</h1>
+    <ul class="difficulty-list" id="difficulty-list">
+      <li>
+        <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+      </li>
+      <li>
+        <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+      </li>
+      <li>
+        <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+      </li>
+    </ul>
+  </div>
 
-    <div class="screen">
-      <h3>time: <span id="time">00:00</span></h3>
-      <div class="board" id="board"></div>
-    </div>
+  <div class="screen">
+    <h3>time: <span id="time">00:00</span></h3>
+    <div class="board" id="board"></div>
+  </div>
 
-    <div class="modal" id="modal">
-      <div class="modal-content">
-        <h2>Records</h2>
-        <ul id="records-list"></ul>
-        <button class="close-modal" id="close-modal">Close</button>
-      </div>
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2>Records</h2>
+      <ul id="records-list"></ul>
+      <button class="close-modal" id="close-modal">Close</button>
     </div>
-    <script src="app.js"></script>
-  </body>
+  </div>
+  <script src="app.js"></script>
+</body>
 </html>
