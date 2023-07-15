@@ -1,14 +1,17 @@
-const startBtn = document.querySelector("#start");
-const screens = document.querySelectorAll(".screen");
-const timeList = document.querySelector("#time-list");
-const timeEl = document.querySelector("#time");
-const board = document.querySelector("#board");
-const recordsBtn = document.querySelector("#records");
-const modal = document.querySelector("#modal");
-const closeBtn = document.querySelector("#close-modal");
-const recordsList = document.querySelector("#records-list");
-const difficultyList = document.querySelector("#difficulty-list");
-const difficultyBtns = document.querySelectorAll(".difficulty-btn");
+const select = (selector) => document.querySelector(selector);
+const selectAll = (selector) => document.querySelectorAll(selector);
+
+const startBtn = select("#start");
+const screens = selectAll(".screen");
+const timeList = select("#time-list");
+const timeEl = select("#time");
+const board = select("#board");
+const recordsBtn = select("#records");
+const modal = select("#modal");
+const closeBtn = select("#close-modal");
+const recordsList = select("#records-list");
+const difficultyBtns = selectAll(".difficulty-btn");
+
 const colors = [
   "#04bd35",
   "#041dbd",
@@ -31,22 +34,19 @@ const colors = [
 ];
 
 const difficultyDisappearTimes = {
-  easy: 0, // Легкий рівень: кульки не зникають
-  medium: 2, // Середній рівень: кульки зникають через 2 секунди
-  hard: 1, // Важкий рівень: кульки зникають через 1 секунду
+  easy: 4,
+  medium: 2,
+  hard: 1,
 };
 
 let time = 0;
 let score = 0;
 let selectedTime = null;
-let selectedDifficulty = "easy"; // Рівень за замовчуванням - "легкий"
-let records = {};
+let selectedDifficulty = "easy";
+let disappearIntervalId;
+let currentCircle;
 
-let disappearTimeoutId; // Ідентифікатор таймауту для зникнення кульок
-let currentCircle; // Поточна кулька
-
-startBtn.addEventListener("click", (event) => {
-  event.preventDefault();
+startBtn.addEventListener("click", () => {
   screens[0].classList.add("up");
 });
 
@@ -58,16 +58,14 @@ timeList.addEventListener("click", (event) => {
   }
 });
 
-difficultyList.addEventListener("click", (event) => {
-  if (event.target.classList.contains("difficulty-btn")) {
-    selectedDifficulty = event.target.getAttribute("data-difficulty");
-    difficultyBtns.forEach((btn) => {
-      btn.classList.remove("selected");
-    });
-    event.target.classList.add("selected");
+difficultyBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    selectedDifficulty = btn.getAttribute("data-difficulty");
+    difficultyBtns.forEach((btn) => btn.classList.remove("selected"));
+    btn.classList.add("selected");
     screens[2].classList.add("up");
     startGame();
-  }
+  });
 });
 
 recordsBtn.addEventListener("click", () => {
@@ -78,114 +76,83 @@ closeBtn.addEventListener("click", () => {
   closeModal();
 });
 
+board.addEventListener("click", (event) => {
+  if (event.target.classList.contains("circle")) {
+    score++;
+    event.target.remove();
+    createRandomCircle();
+  }
+});
+
 function startGame() {
   setTime(selectedTime);
-  setInterval(decreaseTime, 1000);
+  clearInterval(disappearIntervalId);
+  disappearIntervalId = setInterval(() => {
+    if (currentCircle) {
+      currentCircle.remove();
+      createRandomCircle();
+    }
+  }, difficultyDisappearTimes[selectedDifficulty] * 1000);
   createRandomCircle();
+  countdown();
 }
 
-function decreaseTime() {
-  if (time === 0) {
-    finishGame();
-  } else {
-    let current = --time;
-    if (current < 10) {
-      current = `0${current}`;
+function countdown() {
+  const intervalId = setInterval(() => {
+    if (time > 0) {
+      time--;
+      setTime(time);
+    } else {
+      finishGame();
+      clearInterval(intervalId);
     }
-    setTime(current);
-    if (selectedDifficulty !== "easy" && score > 0) {
-      clearTimeout(disappearTimeoutId);
-      disappearTimeoutId = setTimeout(() => {
-        if (currentCircle) {
-          currentCircle.remove();
-          createRandomCircle();
-        }
-      }, difficultyDisappearTimes[selectedDifficulty] * 1000);
-    }
-  }
+  }, 1000);
 }
 
 function setTime(value) {
-  timeEl.innerHTML = `00:${value}`;
+  timeEl.textContent = `00:${value < 10 ? "0" + value : value}`;
 }
 
 function finishGame() {
-  const prevRecord = getRecord(selectedTime, selectedDifficulty);
+  clearInterval(disappearIntervalId);
+  const recordKey = `record_${selectedTime}_${selectedDifficulty}`;
+  const prevRecord = getRecord(recordKey);
   if (!prevRecord || score > prevRecord) {
-    setRecord(selectedTime, selectedDifficulty, score);
+    setRecord(recordKey, score);
   }
-  let recordText = "";
-  const record = getRecord(selectedTime, selectedDifficulty);
-  if (record) {
-    recordText = `Time: ${selectedTime}s | Difficulty: ${selectedDifficulty} | Score: ${record}`;
-  } else {
-    recordText = "No record";
-  }
-
-  let restartBtn = document.createElement("button");
-  restartBtn.classList.add("restart-btn");
-  restartBtn.innerText = "Restart";
-  restartBtn.addEventListener("click", restartGame);
+  const record = getRecord(recordKey);
+  const recordText = record
+    ? `Time: ${selectedTime}s | Difficulty: ${selectedDifficulty} | Score: ${record}`
+    : "No record";
 
   board.innerHTML = `<div>
     <h1>Score: <span class="primary">${score}</span></h1>
-    <p>${recordText}</p>
-    ${restartBtn.outerHTML}
+    <button class="restart-btn" onclick="restartGame()">Restart</button>
   </div>`;
   timeEl.parentNode.classList.add("hide");
 }
 
-function restartGame() {
-  window.location.reload();
-}
-
 function createRandomCircle() {
-  if (currentCircle) {
-    currentCircle.remove();
+  if (time === 0) {
+    return;
   }
 
-  if (time !== 0) {
-    const circle = document.createElement("div");
-    const size = getRandomNumber(10, 60);
-    const { width, height } = board.getBoundingClientRect();
-    const x = getRandomNumber(0, width - size);
-    const y = getRandomNumber(0, height - size);
+  const circle = document.createElement("div");
+  const size = getRandomNumber(10, 60);
+  const { width, height } = board.getBoundingClientRect();
+  const x = getRandomNumber(0, width - size);
+  const y = getRandomNumber(0, height - size);
 
-    circle.classList.add("circle");
-    circle.style.width = `${size}px`;
-    circle.style.height = `${size}px`;
-    circle.style.top = `${y}px`;
-    circle.style.left = `${x}px`;
-    const color = getRandomColor();
-    circle.style.background = color;
-    circle.style.boxShadow = `0 0 2px ${color}, 0 0 10px ${color}`;
+  circle.classList.add("circle");
+  circle.style.width = `${size}px`;
+  circle.style.height = `${size}px`;
+  circle.style.top = `${y}px`;
+  circle.style.left = `${x}px`;
+  circle.style.background = getRandomColor();
 
-    board.append(circle);
-    currentCircle = circle;
-
-    if (selectedDifficulty === "medium" || selectedDifficulty === "hard") {
-      disappearIntervalId = setInterval(() => {
-        if (currentCircle === circle) {
-          currentCircle.remove();
-          clearInterval(disappearIntervalId);
-          createRandomCircle();
-        }
-      }, difficultyDisappearTimes[selectedDifficulty] * 1000);
-    }
-  }
+  board.append(circle);
+  currentCircle = circle;
 }
-
-function handleCircleClick(event) {
-  if (event.target.classList.contains("circle")) {
-    score += 1;
-    event.target.remove();
-    clearInterval(disappearIntervalId);
-    createRandomCircle();
-  }
-}
-
-
-board.addEventListener("click", handleCircleClick);
 
 function getRandomNumber(min, max) {
   return Math.round(Math.random() * (max - min) + min);
@@ -195,43 +162,44 @@ function getRandomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function setRecord(time, difficulty, score) {
-  const recordKey = `record_${time}_${difficulty}`;
-  records[recordKey] = score;
-  localStorage.setItem("records", JSON.stringify(records));
+function handleCircleClick(event) {
+  if (event.target.classList.contains("circle")) {
+    score++;
+    event.target.remove();
+    createRandomCircle();
+  }
 }
 
-function getRecord(time, difficulty) {
-  const recordKey = `record_${time}_${difficulty}`;
-  const savedRecords = localStorage.getItem("records");
-  if (savedRecords) {
-    records = JSON.parse(savedRecords);
-    return records[recordKey] || null;
-  }
-  return null;
+function setRecord(key, score) {
+  const savedRecords = JSON.parse(localStorage.getItem("records")) || {};
+  savedRecords[key] = score;
+  localStorage.setItem("records", JSON.stringify(savedRecords));
+}
+
+function getRecord(key) {
+  const savedRecords = JSON.parse(localStorage.getItem("records")) || {};
+  return savedRecords[key] || null;
 }
 
 function openModal() {
-  const savedRecords = localStorage.getItem("records");
-  if (savedRecords) {
-    records = JSON.parse(savedRecords);
-    const recordKeys = Object.keys(records);
-    recordsList.innerHTML = "";
-    if (recordKeys.length > 0) {
-      recordKeys.forEach((recordKey) => {
-        const [time, difficulty] = recordKey.split("_").slice(1);
-        const record = records[recordKey];
-        recordsList.innerHTML += `<li>Time: ${time}s | Difficulty: ${difficulty} | Score: ${record}</li>`;
-      });
-    } else {
-      recordsList.innerHTML = "<li>No records</li>";
-    }
-  } else {
-    recordsList.innerHTML = "<li>No records</li>";
-  }
+  const savedRecords = JSON.parse(localStorage.getItem("records")) || {};
+  const recordKeys = Object.keys(savedRecords);
+  recordsList.innerHTML = recordKeys.length
+    ? recordKeys
+        .map((key) => {
+          const [time, difficulty] = key.split("_").slice(1);
+          const record = savedRecords[key];
+          return `<li>Time: ${time}s | Difficulty: ${difficulty} | Score: ${record}</li>`;
+        })
+        .join("")
+    : "<li>No records</li>";
   modal.style.display = "block";
 }
 
 function closeModal() {
   modal.style.display = "none";
+}
+
+function restartGame() {
+  window.location.reload();
 }
