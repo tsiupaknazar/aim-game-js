@@ -31,9 +31,9 @@ const colors = [
 ];
 
 const difficultyDisappearTimes = {
-  easy: 0,      // Легкий рівень: кульки не зникають
-  medium: 2,    // Середній рівень: кульки зникають через 2 секунди
-  hard: 1       // Важкий рівень: кульки зникають через 1 секунду
+  easy: 0, // Легкий рівень: кульки не зникають
+  medium: 2, // Середній рівень: кульки зникають через 2 секунди
+  hard: 1, // Важкий рівень: кульки зникають через 1 секунду
 };
 
 let time = 0;
@@ -78,15 +78,6 @@ closeBtn.addEventListener("click", () => {
   closeModal();
 });
 
-board.addEventListener("click", (event) => {
-  if (event.target.classList.contains("circle")) {
-    score++;
-    event.target.remove();
-    createRandomCircle();
-    handleCircleClick();
-  }
-});
-
 function startGame() {
   setTime(selectedTime);
   setInterval(decreaseTime, 1000);
@@ -103,7 +94,7 @@ function decreaseTime() {
     }
     setTime(current);
     if (selectedDifficulty !== "easy" && score > 0) {
-      clearTimeout(disappearTimeoutId); // Скидаємо попередній таймаут перед створенням нового
+      clearTimeout(disappearTimeoutId);
       disappearTimeoutId = setTimeout(() => {
         if (currentCircle) {
           currentCircle.remove();
@@ -153,7 +144,7 @@ function createRandomCircle() {
     currentCircle.remove();
   }
 
-  if (time !== 0) { // Перевірка, чи час не дорівнює 0
+  if (time !== 0) {
     const circle = document.createElement("div");
     const size = getRandomNumber(10, 60);
     const { width, height } = board.getBoundingClientRect();
@@ -172,46 +163,12 @@ function createRandomCircle() {
     board.append(circle);
     currentCircle = circle;
 
-    if (selectedDifficulty === "medium") {
-      disappearTimeoutId = setTimeout(() => {
-        if (currentCircle === circle) { // Перевірка, чи поточна кулька співпадає зі створеною кулькою
+    if (selectedDifficulty === "medium" || selectedDifficulty === "hard") {
+      disappearIntervalId = setInterval(() => {
+        if (currentCircle === circle) {
           currentCircle.remove();
-          createRandomCircle(); // Генерація нової кульки після видалення попередньої
-        }
-      }, difficultyDisappearTimes[selectedDifficulty] * 1000);
-    }
-  }
-}
-
-function createRandomCircle() {
-  if (currentCircle) {
-    currentCircle.remove();
-  }
-
-  if (time !== 0) { // Перевірка, чи час не дорівнює 0
-    const circle = document.createElement("div");
-    const size = getRandomNumber(10, 60);
-    const { width, height } = board.getBoundingClientRect();
-    const x = getRandomNumber(0, width - size);
-    const y = getRandomNumber(0, height - size);
-
-    circle.classList.add("circle");
-    circle.style.width = `${size}px`;
-    circle.style.height = `${size}px`;
-    circle.style.top = `${y}px`;
-    circle.style.left = `${x}px`;
-    const color = getRandomColor();
-    circle.style.background = color;
-    circle.style.boxShadow = `0 0 2px ${color}, 0 0 10px ${color}`;
-
-    board.append(circle);
-    currentCircle = circle;
-
-    if (selectedDifficulty === "medium") {
-      disappearTimeoutId = setTimeout(() => {
-        if (currentCircle === circle) { // Перевірка, чи поточна кулька співпадає зі створеною кулькою
-          currentCircle.remove();
-          createRandomCircle(); // Генерація нової кульки після видалення попередньої
+          clearInterval(disappearIntervalId);
+          createRandomCircle();
         }
       }, difficultyDisappearTimes[selectedDifficulty] * 1000);
     }
@@ -220,12 +177,15 @@ function createRandomCircle() {
 
 function handleCircleClick(event) {
   if (event.target.classList.contains("circle")) {
-    score++;
+    score += 1;
     event.target.remove();
-    clearTimeout(disappearTimeoutId); // Скасування таймауту перед створенням нової кульки
+    clearInterval(disappearIntervalId);
     createRandomCircle();
   }
 }
+
+
+board.addEventListener("click", handleCircleClick);
 
 function getRandomNumber(min, max) {
   return Math.round(Math.random() * (max - min) + min);
