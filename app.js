@@ -7,6 +7,8 @@ const recordsBtn = document.querySelector("#records");
 const modal = document.querySelector("#modal");
 const closeBtn = document.querySelector("#close-modal");
 const recordsList = document.querySelector("#records-list");
+const difficultyList = document.querySelector("#difficulty-list");
+const difficultyBtns = document.querySelectorAll(".difficulty-btn");
 const colors = [
   "#04bd35",
   "#041dbd",
@@ -28,10 +30,20 @@ const colors = [
   "#6226e6",
 ];
 
+const difficultyDisappearTimes = {
+  easy: 0,      // Легкий рівень: кульки не зникають
+  medium: 2,    // Середній рівень: кульки зникають через 2 секунди
+  hard: 1       // Важкий рівень: кульки зникають через 1 секунду
+};
+
 let time = 0;
 let score = 0;
 let selectedTime = null;
-let records = {}; // Об'єкт для збереження рекордів за типом часу
+let selectedDifficulty = "easy"; // Рівень за замовчуванням - "легкий"
+let records = {};
+
+let disappearTimeoutId; // Ідентифікатор таймауту для зникнення кульок
+let currentCircle; // Поточна кулька
 
 startBtn.addEventListener("click", (event) => {
   event.preventDefault();
@@ -43,6 +55,17 @@ timeList.addEventListener("click", (event) => {
     time = parseInt(event.target.getAttribute("data-time"));
     selectedTime = time;
     screens[1].classList.add("up");
+  }
+});
+
+difficultyList.addEventListener("click", (event) => {
+  if (event.target.classList.contains("difficulty-btn")) {
+    selectedDifficulty = event.target.getAttribute("data-difficulty");
+    difficultyBtns.forEach((btn) => {
+      btn.classList.remove("selected");
+    });
+    event.target.classList.add("selected");
+    screens[2].classList.add("up");
     startGame();
   }
 });
@@ -60,13 +83,14 @@ board.addEventListener("click", (event) => {
     score++;
     event.target.remove();
     createRandomCircle();
+    handleCircleClick();
   }
 });
 
 function startGame() {
+  setTime(selectedTime);
   setInterval(decreaseTime, 1000);
   createRandomCircle();
-  setTime(time);
 }
 
 function decreaseTime() {
@@ -78,6 +102,15 @@ function decreaseTime() {
       current = `0${current}`;
     }
     setTime(current);
+    if (selectedDifficulty !== "easy" && score > 0) {
+      clearTimeout(disappearTimeoutId); // Скидаємо попередній таймаут перед створенням нового
+      disappearTimeoutId = setTimeout(() => {
+        if (currentCircle) {
+          currentCircle.remove();
+          createRandomCircle();
+        }
+      }, difficultyDisappearTimes[selectedDifficulty] * 1000);
+    }
   }
 }
 
@@ -86,14 +119,14 @@ function setTime(value) {
 }
 
 function finishGame() {
-  const prevRecord = getRecord(selectedTime);
+  const prevRecord = getRecord(selectedTime, selectedDifficulty);
   if (!prevRecord || score > prevRecord) {
-    setRecord(selectedTime, score);
+    setRecord(selectedTime, selectedDifficulty, score);
   }
   let recordText = "";
-  const record = getRecord(selectedTime);
+  const record = getRecord(selectedTime, selectedDifficulty);
   if (record) {
-    recordText = `Time: ${selectedTime}s Score: ${record}`;
+    recordText = `Time: ${selectedTime}s | Difficulty: ${selectedDifficulty} | Score: ${record}`;
   } else {
     recordText = "No record";
   }
@@ -104,8 +137,9 @@ function finishGame() {
   restartBtn.addEventListener("click", restartGame);
 
   board.innerHTML = `<div>
-  <h1>Score: <span class="primary">${score}</span></h1>
-  ${restartBtn.outerHTML}
+    <h1>Score: <span class="primary">${score}</span></h1>
+    <p>${recordText}</p>
+    ${restartBtn.outerHTML}
   </div>`;
   timeEl.parentNode.classList.add("hide");
 }
@@ -114,24 +148,83 @@ function restartGame() {
   window.location.reload();
 }
 
+function createRandomCircle() {
+  if (currentCircle) {
+    currentCircle.remove();
+  }
+
+  if (time !== 0) { // Перевірка, чи час не дорівнює 0
+    const circle = document.createElement("div");
+    const size = getRandomNumber(10, 60);
+    const { width, height } = board.getBoundingClientRect();
+    const x = getRandomNumber(0, width - size);
+    const y = getRandomNumber(0, height - size);
+
+    circle.classList.add("circle");
+    circle.style.width = `${size}px`;
+    circle.style.height = `${size}px`;
+    circle.style.top = `${y}px`;
+    circle.style.left = `${x}px`;
+    const color = getRandomColor();
+    circle.style.background = color;
+    circle.style.boxShadow = `0 0 2px ${color}, 0 0 10px ${color}`;
+
+    board.append(circle);
+    currentCircle = circle;
+
+    if (selectedDifficulty === "medium") {
+      disappearTimeoutId = setTimeout(() => {
+        if (currentCircle === circle) { // Перевірка, чи поточна кулька співпадає зі створеною кулькою
+          currentCircle.remove();
+          createRandomCircle(); // Генерація нової кульки після видалення попередньої
+        }
+      }, difficultyDisappearTimes[selectedDifficulty] * 1000);
+    }
+  }
+}
 
 function createRandomCircle() {
-  const circle = document.createElement("div");
-  const size = getRandomNumber(10, 60);
-  const { width, height } = board.getBoundingClientRect();
-  const x = getRandomNumber(0, width - size);
-  const y = getRandomNumber(0, height - size);
+  if (currentCircle) {
+    currentCircle.remove();
+  }
 
-  circle.classList.add("circle");
-  circle.style.width = `${size}px`;
-  circle.style.height = `${size}px`;
-  circle.style.top = `${y}px`;
-  circle.style.left = `${x}px`;
-  const color = getRandomColor();
-  circle.style.background = color;
-  circle.style.boxShadow = `0 0 2px ${color}, 0 0 10px ${color}`;
+  if (time !== 0) { // Перевірка, чи час не дорівнює 0
+    const circle = document.createElement("div");
+    const size = getRandomNumber(10, 60);
+    const { width, height } = board.getBoundingClientRect();
+    const x = getRandomNumber(0, width - size);
+    const y = getRandomNumber(0, height - size);
 
-  board.append(circle);
+    circle.classList.add("circle");
+    circle.style.width = `${size}px`;
+    circle.style.height = `${size}px`;
+    circle.style.top = `${y}px`;
+    circle.style.left = `${x}px`;
+    const color = getRandomColor();
+    circle.style.background = color;
+    circle.style.boxShadow = `0 0 2px ${color}, 0 0 10px ${color}`;
+
+    board.append(circle);
+    currentCircle = circle;
+
+    if (selectedDifficulty === "medium") {
+      disappearTimeoutId = setTimeout(() => {
+        if (currentCircle === circle) { // Перевірка, чи поточна кулька співпадає зі створеною кулькою
+          currentCircle.remove();
+          createRandomCircle(); // Генерація нової кульки після видалення попередньої
+        }
+      }, difficultyDisappearTimes[selectedDifficulty] * 1000);
+    }
+  }
+}
+
+function handleCircleClick(event) {
+  if (event.target.classList.contains("circle")) {
+    score++;
+    event.target.remove();
+    clearTimeout(disappearTimeoutId); // Скасування таймауту перед створенням нової кульки
+    createRandomCircle();
+  }
 }
 
 function getRandomNumber(min, max) {
@@ -142,14 +235,14 @@ function getRandomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function setRecord(time, score) {
-  const recordKey = `record_${time}`;
+function setRecord(time, difficulty, score) {
+  const recordKey = `record_${time}_${difficulty}`;
   records[recordKey] = score;
   localStorage.setItem("records", JSON.stringify(records));
 }
 
-function getRecord(time) {
-  const recordKey = `record_${time}`;
+function getRecord(time, difficulty) {
+  const recordKey = `record_${time}_${difficulty}`;
   const savedRecords = localStorage.getItem("records");
   if (savedRecords) {
     records = JSON.parse(savedRecords);
@@ -166,9 +259,9 @@ function openModal() {
     recordsList.innerHTML = "";
     if (recordKeys.length > 0) {
       recordKeys.forEach((recordKey) => {
-        const time = recordKey.split("_")[1];
+        const [time, difficulty] = recordKey.split("_").slice(1);
         const record = records[recordKey];
-        recordsList.innerHTML += `<li>Time: ${time}s | Score: ${record}</li>`;
+        recordsList.innerHTML += `<li>Time: ${time}s | Difficulty: ${difficulty} | Score: ${record}</li>`;
       });
     } else {
       recordsList.innerHTML = "<li>No records</li>";
